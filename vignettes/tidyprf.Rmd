@@ -1,0 +1,113 @@
+---
+title: "Getting started with tidyprf"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with tidyprf}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The Brazilian Federal Highway Police (Polícia Rodoviária Federal, PRF) publishes
+open data on traffic accidents and traffic violations on federal highways.
+**tidyprf** gives you these datasets directly in R, already cleaned and
+consolidated, with a consistent schema across all years.
+
+```{r setup}
+library(tidyprf)
+```
+
+## The three datasets
+
+| Dataset | Function | Unit | Available years |
+|---|---|---|---|
+| Accidents by person | `get_accidents()` | 1 row per person involved | 2007–2026 |
+| Accidents by occurrence | `get_crashes()` | 1 row per accident | 2007–2026 |
+| Traffic violations | `get_violations()` | 1 row per violation | 2019–2020, 2022–2026 |
+
+Data are stored as one Parquet file per dataset per year, hosted on GitHub
+Releases. The first time you request a year, the file is downloaded and cached
+locally (in `tools::R_user_dir("tidyprf", "cache")`); subsequent calls read
+from the cache and require no internet connection.
+
+## Downloading data
+
+All chunks in this section require an internet connection, so they are not
+evaluated when the vignette is built.
+
+Fetch all accident occurrences from 2023:
+
+```{r, eval = FALSE}
+crashes_2023 <- get_crashes(2023)
+crashes_2023
+```
+
+You can request several years at once and filter by state (`uf`), federal
+highway (`br`), and — for accident data — severity:
+
+```{r, eval = FALSE}
+# Fatal accidents in São Paulo and Rio de Janeiro, 2020-2023
+fatal <- get_crashes(2020:2023, uf = c("SP", "RJ"), severity = "fatal")
+
+# People involved in accidents on the BR-101
+people_101 <- get_accidents(2023, br = 101)
+
+# Traffic violations in Minas Gerais
+violations_mg <- get_violations(2024, uf = "MG")
+```
+
+To see which years are available (and how large each file is) without
+downloading anything:
+
+```{r, eval = FALSE}
+prf_years()
+```
+
+## Understanding the variables
+
+Each dataset has a bilingual codebook available offline. This runs without
+internet:
+
+```{r}
+info_crashes()
+```
+
+Use `lang = "pt"` for descriptions in Portuguese:
+
+```{r}
+head(info_violations(lang = "pt"))
+```
+
+The full codebook is also available as a data object:
+
+```{r}
+str(codebook)
+```
+
+## Managing the cache
+
+```{r}
+prf_cache()
+```
+
+`prf_cache()` lists the files currently cached; `prf_cache_clear()` removes
+them (all of them, or a specific dataset/year):
+
+```{r, eval = FALSE}
+prf_cache_clear("violations", year = 2024)
+prf_cache_clear()  # everything
+```
+
+## Data sources
+
+Raw data are published by the PRF on the [federal government open data
+portal](https://www.gov.br/prf/pt-br/acesso-a-informacao/dados-abertos/dados-abertos-da-prf).
+The consolidation pipeline (raw CSV to Parquet, schema unification across
+years) is maintained at
+[bonijoao/tidyprf-dados](https://github.com/bonijoao/tidyprf-dados).
