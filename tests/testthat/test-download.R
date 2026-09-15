@@ -31,12 +31,124 @@ test_that("catalog_get returns cached value on second call without HTTP", {
 
 test_that("fetch_parquet returns existing cached file without HTTP", {
   withr::with_tempdir({
-    withr::with_options(list(tidyprf.cache_dir = getwd()), {
+    withr::with_options(list(tidyprf.cache_dir = getwd(), tidyprf.check_updates = FALSE), {
       dest <- cache_path("accidents", 2023)
       fs::file_create(dest)
 
+      testthat::local_mocked_bindings(
+        catalog_get = function() stop("catalog should not be queried"),
+        .download_file = function(url, path) stop("should not download"),
+        .package = "tidyprf"
+      )
+
       result <- fetch_parquet("accidents", 2023)
       expect_equal(result, dest)
+    })
+  })
+})
+
+# Catalog with a single accidents_2023 entry published on `date`
+fake_catalog <- function(date) {
+  list(datasets = list(acidentes = list(
+    anos = list(2023L),
+    arquivos = list(acidentes_2023.parquet = list(
+      url = "https://example.com/acidentes_2023.parquet",
+      tamanho_mb = 1,
+      linhas = 10,
+      atualizado_em = date
+    ))
+  )))
+}
+
+# Creates a cached accidents_2023 file with modification date `date`
+fake_cached_file <- function(date) {
+  dest <- cache_path("accidents", 2023)
+  fs::dir_create(fs::path_dir(dest))
+  writeLines("old", dest)
+  Sys.setFileTime(dest, as.POSIXct(paste(date, "12:00:00")))
+  dest
+}
+
+test_that("fetch_parquet keeps cache when catalog version is not newer", {
+  withr::with_tempdir({
+    withr::with_options(list(tidyprf.cache_dir = getwd(), tidyprf.check_updates = TRUE), {
+      dest <- fake_cached_file("2026-06-01")
+      downloaded <- FALSE
+      testthat::local_mocked_bindings(
+        catalog_get = function() fake_catalog("2026-05-03"),
+        .download_file = function(url, path) downloaded <<- TRUE,
+        .package = "tidyprf"
+      )
+
+      expect_equal(fetch_parquet("accidents", 2023), dest)
+      expect_false(downloaded)
+      expect_equal(readLines(dest), "old")
+    })
+  })
+})
+
+test_that("fetch_parquet re-downloads when catalog version is newer", {
+  withr::with_tempdir({
+    withr::with_options(list(tidyprf.cache_dir = getwd(), tidyprf.check_updates = TRUE), {
+      dest <- fake_cached_file("2026-05-01")
+      testthat::local_mocked_bindings(
+        catalog_get = function() fake_catalog("2026-09-14"),
+        .download_file = function(url, path) writeLines("new", path),
+        .package = "tidyprf"
+      )
+
+      expect_message(fetch_parquet("accidents", 2023), "newer version")
+      expect_equal(readLines(dest), "new")
+      expect_false(fs::file_exists(paste0(dest, ".part")))
+    })
+  })
+})
+
+test_that("fetch_parquet uses cache when catalog is unavailable", {
+  withr::with_tempdir({
+    withr::with_options(list(tidyprf.cache_dir = getwd(), tidyprf.check_updates = TRUE), {
+      dest <- fake_cached_file("2026-05-01")
+      testthat::local_mocked_bindings(
+        catalog_get = function() stop("offline"),
+        .download_file = function(url, path) stop("should not download"),
+        .package = "tidyprf"
+      )
+
+      expect_equal(fetch_parquet("accidents", 2023), dest)
+      expect_equal(readLines(dest), "old")
+    })
+  })
+})
+
+test_that("fetch_parquet keeps old cache when refresh download fails", {
+  withr::with_tempdir({
+    withr::with_options(list(tidyprf.cache_dir = getwd(), tidyprf.check_updates = TRUE), {
+      dest <- fake_cached_file("2026-05-01")
+      testthat::local_mocked_bindings(
+        catalog_get = function() fake_catalog("2026-09-14"),
+        .download_file = function(url, path) stop("network error"),
+        .package = "tidyprf"
+      )
+
+      expect_warning(
+        expect_equal(fetch_parquet("accidents", 2023), dest),
+        "cached copy"
+      )
+      expect_equal(readLines(dest), "old")
+    })
+  })
+})
+
+test_that("tidyprf.check_updates = FALSE skips the catalog check", {
+  withr::with_tempdir({
+    withr::with_options(list(tidyprf.cache_dir = getwd(), tidyprf.check_updates = FALSE), {
+      dest <- fake_cached_file("2026-05-01")
+      testthat::local_mocked_bindings(
+        catalog_get = function() stop("catalog should not be queried"),
+        .package = "tidyprf"
+      )
+
+      expect_equal(fetch_parquet("accidents", 2023), dest)
     })
   })
 })

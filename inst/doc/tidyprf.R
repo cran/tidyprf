@@ -40,3 +40,6 @@ prf_cache()
 # prf_cache_clear("violations", year = 2024)
 # prf_cache_clear()  # everything
 
+## ----eval = FALSE-------------------------------------------------------------
+# options(tidyprf.check_updates = FALSE)
+

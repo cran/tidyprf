@@ -1,6 +1,6 @@
 Package: tidyprf
 Title: Tidy Access to Brazilian Federal Highway Police ('PRF') Data
-Version: 0.1.1
+Version: 0.2.0
 Authors@R: c(
     person("João Paulo", "Assis Bonifácio", , "jpab.27@hotmail.com",
            role = c("aut", "cre"), comment = c(ORCID = "0009-0009-2335-8391")),
@@ -27,7 +27,7 @@ Language: en-US
 LazyData: true
 RoxygenNote: 7.3.3
 NeedsCompilation: no
-Packaged: 2026-07-23 14:33:44 UTC; jpab2
+Packaged: 2026-09-14 23:55:04 UTC; jpab2
 Author: João Paulo Assis Bonifácio [aut, cre] (ORCID:
     <https://orcid.org/0009-0009-2335-8391>),
   Geraldo Magela da Cruz Pereira [aut] (ORCID:
@@ -35,4 +35,4 @@ Author: João Paulo Assis Bonifácio [aut, cre] (ORCID:
   Pedro Mambelli Fernandes [aut]
 Maintainer: João Paulo Assis Bonifácio <jpab.27@hotmail.com>
 Repository: CRAN
-Date/Publication: 2026-08-03 17:50:02 UTC
+Date/Publication: 2026-09-15 02:10:02 UTC

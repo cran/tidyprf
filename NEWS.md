@@ -1,3 +1,11 @@
+# tidyprf 0.2.0
+
+* Cached files are now refreshed automatically: when a cached year is requested
+  and the online catalog lists a newer version (the data repository is updated
+  weekly), the file is re-downloaded. Offline, or if the refresh fails, the
+  cached copy is used. Set `options(tidyprf.check_updates = FALSE)` to disable
+  the check.
+
 # tidyprf 0.1.1
 
 * Use an absolute GitHub URL for the Portuguese README link in `README.md`
